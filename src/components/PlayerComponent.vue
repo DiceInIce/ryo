@@ -705,31 +705,30 @@ const fetchPlayers = async () => {
     console.log('Получены плееры:', players)
     console.log('Тип данных:', Array.isArray(players) ? 'array' : typeof players)
 
-    // Парсим строку, если это строка
-    let parsedPlayers = players
+    // Пытаемся распарсить строку, если это строка
+    // Но даже если парсинг не удался, продолжаем с прямым URL
     if (typeof players === 'string') {
-      try {
-        const cleanString = players.trim()
-        console.log('Исходная строка для парсинга:', cleanString.substring(0, 100))
-        
-        // Пытаемся найти последний валидный JSON массив или объект в строке
-        // Это нужно, если строка содержит что-то вроде "[]" перед реальным JSON
-        let parsed = null
-        let lastError = null
-        
-        // Пробуем распарсить всю строку
+      const cleanString = players.trim()
+      console.log('Исходная строка для парсинга:', cleanString.substring(0, 100))
+      
+      // Проверяем, не является ли это просто пустыми скобками
+      if (cleanString === '[]' || cleanString === '[][]' || cleanString.startsWith('[]')) {
+        console.warn('Получен пустой массив или некорректный формат, используем прямой URL')
+      } else {
+        // Пытаемся найти валидный JSON в строке
         try {
-          parsed = JSON.parse(cleanString)
+          // Пробуем распарсить всю строку
+          const parsed = JSON.parse(cleanString)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            console.log('Распарсенные плееры:', parsed)
+          }
         } catch (e) {
-          lastError = e
-          // Если не получилось, ищем JSON массивы в строке
-          // Ищем все возможные JSON массивы, начиная с конца
+          // Если не получилось, ищем JSON массивы в строке, начиная с конца
+          let found = false
           let searchPos = cleanString.length
           
-          while (searchPos > 0) {
-            const substr = cleanString.substring(0, searchPos)
-            // Пробуем найти закрывающую скобку массива
-            const lastBracket = substr.lastIndexOf(']')
+          while (searchPos > 0 && !found) {
+            const lastBracket = cleanString.lastIndexOf(']', searchPos)
             if (lastBracket > 0) {
               // Ищем соответствующую открывающую скобку
               let bracketCount = 0
@@ -749,9 +748,8 @@ const fetchPlayers = async () => {
                 try {
                   const testParse = JSON.parse(jsonCandidate)
                   if (Array.isArray(testParse) && testParse.length > 0) {
-                    parsed = testParse
                     console.log('Найден валидный JSON массив:', jsonCandidate.substring(0, 100))
-                    break
+                    found = true
                   }
                 } catch {
                   // Продолжаем поиск
@@ -761,32 +759,10 @@ const fetchPlayers = async () => {
             searchPos = lastBracket - 1
           }
           
-          // Если не нашли массив, пробуем найти объект
-          if (!parsed) {
-            const objMatch = cleanString.match(/\{.*\}/s)
-            if (objMatch) {
-              try {
-                parsed = JSON.parse(objMatch[0])
-              } catch {
-                // Игнорируем
-              }
-            }
+          if (!found) {
+            console.warn('Не удалось найти валидный JSON в ответе, используем прямой URL')
           }
         }
-        
-        if (parsed) {
-          parsedPlayers = parsed
-          console.log('Распарсенные плееры:', parsedPlayers)
-        } else {
-          throw lastError || new Error('Не удалось найти валидный JSON в строке')
-        }
-      } catch (parseError) {
-        console.error('Ошибка парсинга JSON:', parseError)
-        console.error('Исходные данные:', players)
-        errorMessage.value = 'Ошибка обработки данных плееров'
-        errorCode.value = 500
-        iframeLoading.value = false
-        return
       }
     }
 
@@ -3245,6 +3221,30 @@ const testOBSConnection = async () => {
   width: 100%;
 }
 
+/* Адаптивные стили для мобильных устройств */
+@media (max-width: 768px) {
+  .player-container {
+    padding-bottom: 5px;
+    /* Убеждаемся, что контейнер занимает всю ширину на мобильных */
+    max-width: 100% !important;
+  }
+
+  .iframe-wrapper {
+    /* На мобильных устройствах убеждаемся, что wrapper правильно масштабируется */
+    min-height: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .player-container {
+    padding-bottom: 0;
+  }
+
+  .iframe-wrapper {
+    min-height: 180px;
+  }
+}
+
 .responsive-iframe {
   position: absolute;
   top: 0;
@@ -3270,15 +3270,82 @@ const testOBSConnection = async () => {
 }
 
 .responsive-iframe.full-page-iframe {
-  /* Сдвигаем iframe влево и вверх, чтобы скрыть сайдбар (250px) и заголовок */
+  /* Сдвигаем iframe вверх, чтобы скрыть заголовок */
   position: absolute;
+  left: 0;
   top: -330px; /* Увеличено для скрытия заголовка */
-  /* Увеличиваем размер iframe, чтобы компенсировать обрезку */
+  width: 100%;
   height: calc(100% + 330px); /* Увеличено для компенсации */
 }
 
 .responsive-iframe.dimmed {
   z-index: 7;
+}
+
+/* Адаптивные стили для мобильных устройств */
+@media (max-width: 768px) {
+  .responsive-iframe.full-page-iframe {
+    /* На мобильных устройствах сайдбар обычно меньше или отсутствует */
+    /* Сдвигаем только вверх для скрытия заголовка */
+    left: 0;
+    top: -200px; /* Меньший сдвиг для мобильных */
+    width: 100%;
+    height: calc(100% + 200px);
+  }
+
+  .iframe-wrapper:has(.full-page-iframe) {
+    /* На мобильных устройствах убеждаемся, что контейнер правильно обрезает */
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* В театральном режиме на мобильных устройствах */
+  .player-container.theater-mode .responsive-iframe.full-page-iframe {
+    /* В театральном режиме используем меньший сдвиг */
+    top: -150px;
+    height: calc(100% + 150px);
+  }
+
+  /* Улучшаем отображение в портретной ориентации */
+  @media (orientation: portrait) {
+    .responsive-iframe.full-page-iframe {
+      top: -150px;
+      height: calc(100% + 150px);
+    }
+
+    .player-container.theater-mode .responsive-iframe.full-page-iframe {
+      top: -120px;
+      height: calc(100% + 120px);
+    }
+  }
+
+  /* Улучшаем отображение в ландшафтной ориентации */
+  @media (orientation: landscape) {
+    .responsive-iframe.full-page-iframe {
+      top: -180px;
+      height: calc(100% + 180px);
+    }
+
+    .player-container.theater-mode .responsive-iframe.full-page-iframe {
+      top: -140px;
+      height: calc(100% + 140px);
+    }
+  }
+}
+
+/* Адаптивные стили для очень маленьких экранов */
+@media (max-width: 480px) {
+  .responsive-iframe.full-page-iframe {
+    top: -120px;
+    height: calc(100% + 120px);
+  }
+
+  @media (orientation: portrait) {
+    .responsive-iframe.full-page-iframe {
+      top: -100px;
+      height: calc(100% + 100px);
+    }
+  }
 }
 
 /* Стили для театрального режима */
@@ -3328,6 +3395,40 @@ const testOBSConnection = async () => {
 
 .close-theater-btn.visible {
   opacity: 1;
+}
+
+/* Адаптивные стили для театрального режима на мобильных устройствах */
+@media (max-width: 768px) {
+  .player-container.theater-mode .iframe-wrapper {
+    /* На мобильных устройствах убеждаемся, что iframe занимает весь экран */
+    min-height: 100vh;
+  }
+
+  .close-theater-btn {
+    /* На мобильных устройствах кнопка должна быть более доступной */
+    top: 10px;
+    right: 10px;
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+    /* Делаем кнопку более заметной на мобильных */
+    background: rgba(255, 0, 0, 0.85);
+    opacity: 1; /* Всегда видима на мобильных */
+  }
+
+  .close-theater-btn.visible {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .close-theater-btn {
+    top: 8px;
+    right: 8px;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
 }
 
 /* Делаем кнопку видимой при наведении на зону */

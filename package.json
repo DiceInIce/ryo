@@ -5,15 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:github": "cross-env VITE_BASE_URL=/reyohoho/ vite build --mode github",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 vite build",
+    "build:github": "cross-env NODE_OPTIONS=--max-old-space-size=4096 VITE_BASE_URL=/reyohoho/ vite build --mode github",
     "preview": "vite preview",
     "test:unit": "vitest",
     "lint": "eslint --ext .js,.vue src",
     "lint:fix": "eslint --ext .js,.vue src --fix",
     "format": "prettier --write src/",
     "icons": "node scripts/generate-icons.js",
-    "build:icons": "node scripts/generate-icons.js && vite build"
+    "build:icons": "cross-env NODE_OPTIONS=--max-old-space-size=4096 node scripts/generate-icons.js && cross-env NODE_OPTIONS=--max-old-space-size=4096 vite build"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",

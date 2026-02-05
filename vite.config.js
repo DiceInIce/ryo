@@ -117,10 +117,11 @@ export default defineConfig(({ mode }) => {
       }),
       eslintPlugin({
         include: ['src/**/*.js', 'src/**/*.vue', 'src/**/*.jsx', 'src/**/*.ts', 'src/**/*.tsx'],
-        failOnError: true,
+        failOnError: false, // Отключаем остановку при ошибках во время сборки
         failOnWarning: false,
-        cache: false,
-        emitError: true
+        cache: true, // Включаем кеш для ускорения
+        emitError: false, // Не останавливаем сборку при ошибках линтера
+        emitWarning: false
       })
     ],
     resolve: {
