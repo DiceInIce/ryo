@@ -39,18 +39,18 @@ const getKpInfo = async (kpId) => {
 const getPlayers = async (kpId) => {
   try {
     console.log('Fetching players for KP ID:', kpId)
-    const { data } = await apiCall((api) =>
-      api.post(
-        '/cache',
-        new URLSearchParams({
-          kinopoisk: kpId,
-          type: 'movie'
-        }),
-        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-      )
+  const { data } = await apiCall((api) =>
+    api.post(
+      '/cache',
+      new URLSearchParams({
+        kinopoisk: kpId,
+        type: 'movie'
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     )
+  )
     console.log('Players received:', data)
-    return data
+  return data
   } catch (error) {
     console.error('Error fetching players:', error)
     if (error.response) {
